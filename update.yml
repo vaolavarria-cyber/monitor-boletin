@@ -1,0 +1,33 @@
+name: Actualizar monitor
+
+on:
+  schedule:
+    # 08:01 hora Argentina (UTC-3) = 11:01 UTC, lunes a viernes
+    - cron: "1 11 * * 1-5"
+  workflow_dispatch: {}   # permite correrlo a mano desde la pestana Actions
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generar index.html
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python update.py
+
+      - name: Deploy a Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          npx --yes netlify-cli@17 deploy --prod --dir=_site --site="$NETLIFY_SITE_ID" --auth="$NETLIFY_AUTH_TOKEN"
